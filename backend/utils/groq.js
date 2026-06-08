@@ -1,12 +1,14 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const analyzeResume = async (resumeText, targetRole = "") => {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-  const prompt = `
-You are an expert ATS (Applicant Tracking System) and HR specialist. Analyze the following resume and return a detailed JSON analysis.
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      {
+        role: "user",
+        content: `You are an expert ATS (Applicant Tracking System) and HR specialist. Analyze the following resume and return a detailed JSON analysis.
 
 Resume Text:
 """
@@ -23,8 +25,8 @@ Return ONLY a valid JSON object (no markdown, no explanation) with this exact st
   "experienceLevel": "<Fresher | Junior | Mid-Level | Senior>",
   "summary": "<2-3 sentence professional summary of the candidate>",
   "skills": {
-    "found": ["skill1", "skill2", ...],
-    "missing": ["skill1", "skill2", ...]
+    "found": ["skill1", "skill2"],
+    "missing": ["skill1", "skill2"]
   },
   "strengths": ["strength1", "strength2", "strength3", "strength4"],
   "weaknesses": ["weakness1", "weakness2", "weakness3"],
@@ -38,18 +40,19 @@ Return ONLY a valid JSON object (no markdown, no explanation) with this exact st
   "roleMatch": {
     "percentage": <number 0-100>,
     "verdict": "<Strong Match | Good Match | Partial Match | Weak Match>",
-    "missingSkills": ["skill1", "skill2", ...]
+    "missingSkills": ["skill1", "skill2"]
   }
 }
 
-Be specific, detailed, and honest. ATS score should reflect keyword optimization. Skill match should reflect technical skills coverage.
-${targetRole ? `Role match should specifically evaluate fit for: ${targetRole}` : "Role match should evaluate general employability."}
-`;
+Be specific, detailed, and honest. ATS score should reflect keyword optimization.
+${targetRole ? `Role match should specifically evaluate fit for: ${targetRole}` : "Role match should evaluate general employability."}`
+      }
+    ],
+    temperature: 0.7,
+    max_tokens: 2000,
+  });
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-
-  // Strip markdown fences if present
+  const text = completion.choices[0]?.message?.content || "";
   const cleaned = text.replace(/```json|```/g, "").trim();
   return JSON.parse(cleaned);
 };

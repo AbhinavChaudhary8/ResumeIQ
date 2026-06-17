@@ -2,7 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const pdfParse = require("pdf-parse");
 const authMiddleware = require("../middleware/auth");
-const { analyzeResume } = require("../utils/gemini");
+const { analyzeResume } = require("../utils/groq");
 const Analysis = require("../models/Analysis");
 
 const router = express.Router();
